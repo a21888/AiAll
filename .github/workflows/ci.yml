@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docker-build-smoke:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and start stack
+        run: docker compose up -d --build
+
+      - name: Wait for app to become healthy
+        run: |
+          echo "Waiting for aiall-app to become healthy..."
+          for i in $(seq 1 72); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' aiall-app 2>/dev/null || echo "starting")
+            echo "[$i] health=$status"
+            if [ "$status" = "healthy" ]; then
+              echo "App is healthy."
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "App became unhealthy."
+              docker compose logs --tail=200
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Timeout waiting for health."
+          docker compose logs --tail=200
+          exit 1
+
+      - name: Smoke test endpoints
+        run: |
+          echo "== GET /v1/health =="
+          curl -fsS http://localhost:8080/v1/health
+          echo
+          echo "== GET / (homepage) =="
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/
+          echo "== GET /console =="
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/console
+          echo "== GET /admin =="
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/admin
+
+      - name: Collect logs
+        if: always()
+        run: docker compose logs --tail=150
