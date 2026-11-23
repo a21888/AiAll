@@ -35,7 +35,8 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone
 
 # ---------------------------------------------------------------------------
-# 2. 编译安装 PHP 扩展（与项目要求对齐：pdo_mysql / curl / mbstring / gd / zip / opcache / pcntl / sqlite3 / bcmath）
+# 2. 编译安装 PHP 扩展（应用必需：pdo_mysql / curl / mbstring / gd / zip / opcache / pcntl）
+#    注：sqlite3 / bcmath 非必需，且在官方镜像中编译源缺失，故不安装
 # ---------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
@@ -55,8 +56,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         zip \
         opcache \
         pcntl \
-        sqlite3 \
-        bcmath \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
         $PHPIZE_DEPS libcurl4-openssl-dev libpng-dev libjpeg-dev \
         libfreetype6-dev libwebp-dev libonig-dev libzip-dev \
