@@ -33,7 +33,7 @@
 
 ```bash
 # 1) 拉取代码
-git clone https://github.com/<你的账号>/AiAll.git
+git clone https://github.com/a21888/AiAll.git
 cd AiAll
 
 # 2)（可选）自定义配置：复制模板后修改端口/密码等
@@ -154,8 +154,8 @@ storage/                运行时目录（会话、日志、临时文件）
 
 ```bash
 # 1) 拉取代码
-git clone https://github.com/ikooc/aigw-backend.git
-cd aigw-backend
+git clone https://github.com/a21888/AiAll.git
+cd AiAll
 
 # 2) 复制配置模板并填写数据库等信息
 cp .env.example .env

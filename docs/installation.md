@@ -114,7 +114,7 @@ nginx -V                                           # 1.20+，建议带 realip �
 ## 3. 获取代码
 
 ```bash
-git clone https://github.com/ikooc/aigw-backend.git /www/wwwroot/aigw
+git clone https://github.com/a21888/AiAll.git /www/wwwroot/aigw
 cd /www/wwwroot/aigw
 ```
 
