@@ -15,6 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: PHP syntax check (lint all)
+        run: |
+          docker run --rm -v "$PWD:/code" -w /code php:8.2-cli sh -c \
+            'errors=0; for f in $(find . -name "*.php" -not -path "./public/assets/*"); do out=$(php -l "$f" 2>&1) || { echo "$out"; errors=1; }; done; exit $errors'
+
       - name: Build and start stack
         run: docker compose up -d --build
 
@@ -50,6 +55,9 @@ jobs:
           curl -fsS -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/console
           echo "== GET /admin =="
           curl -fsS -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/admin
+
+      - name: Verify built-in providers load
+        run: docker compose exec -T app php docker/verify-providers.php
 
       - name: Collect logs
         if: always()

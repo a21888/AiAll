@@ -21,6 +21,8 @@
 | `qoder_intl` | Qoder 国际版 | `DEVICE_CODE` | 支持 | |
 | `xiaohuanxiong` | 商汤小浣熊 | `WEBVIEW_CALLBACK` | 支持 | |
 | `loomy` | Loomy | `SMS_CODE` | 支持 | 短信验证码登录 |
+| `dumate` | 百度搭子 | `API_KEY` | 支持 | 手工粘贴网页 Cookie，后台自动换票（token 约 1 小时） |
+| `lobster` | 有道 LobsterAI | `API_KEY` | **不支持** | 手工粘贴 accessToken（可选 refreshToken 自动刷新） |
 | `custom` | 自定义供应商 | `API_KEY` | 支持 | OpenAI 兼容上游，用户可自建 |
 
 > 「图片输入」指**当前协议链路**是否保证保留 `image_url` 内容块。返回不支持时，Responses 适配层会在请求前明确报 `400 unsupported_image_input`，避免图片被上游静默丢弃。

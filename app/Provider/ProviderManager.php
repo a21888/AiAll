@@ -27,6 +27,8 @@ class ProviderManager
         'qoder'           => Providers\QoderProvider::class,
         'qoder_intl'      => Providers\QoderProvider::class,
         'xiaohuanxiong'   => Providers\XiaohuanxiongProvider::class,
+        'dumate'          => Providers\DumateProvider::class,
+        'lobster'         => Providers\LobsterProvider::class,
         'custom'          => Providers\CustomProvider::class,
     ];
 

@@ -36,6 +36,8 @@ class ProviderRepository
         'qoder'          => ['Qoder', 'DEVICE_CODE', 'auto', ['openapi.qoder.com.cn', 'gateway.qoder.com.cn', 'qoder.com.cn'], 60],
         'qoder_intl'     => ['Qoder 国际版', 'DEVICE_CODE', 'auto', ['openapi.qoder.sh', 'api2.qoder.sh', 'qoder.com'], 61],
         'xiaohuanxiong'  => ['商汤小浣熊', 'WEBVIEW_CALLBACK', 'sn-glm-5-3-flash', ['xiaohuanxiong.com'], 70],
+        'dumate'         => ['百度搭子', 'API_KEY', 'deepseek-v4-pro', ['www.dumate.cn', 'dumate.cn', 'console.bce.baidu.com', 'dumate-svc.baidu.com'], 80],
+        'lobster'        => ['有道 LobsterAI', 'API_KEY', 'deepseek-v4-pro', ['lobsterai-server.youdao.com', 'api-overmind.youdao.com'], 81],
     ];
 
     private bool $builtinsEnsured = false;

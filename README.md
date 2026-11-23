@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/License-AGPL--3.0-663399" alt="License AGPL-3.0">
 </p>
 
-把多个 AI 上游（Trae、WorkBuddy、Antigravity、豆包、ZCode、Qoder、商汤小浣熊、Loomy、自定义 OpenAI 兼容服务等）的账号池聚合成一个**OpenAI 兼容网关**，并附带管理后台与用户控制台。
+把多个 AI 上游（Trae、WorkBuddy、Antigravity、豆包、ZCode、Qoder、商汤小浣熊、Loomy、百度搭子、有道 LobsterAI、自定义 OpenAI 兼容服务等）的账号池聚合成一个**OpenAI 兼容网关**，并附带管理后台与用户控制台。
 
 - 纯 PHP 8.2 实现，**不依赖 Composer / 框架**，自带轻量 MVC、DI 容器与路由
 - 对外暴露 `/v1/chat/completions`、`/v1/responses`（含生命周期端点）、`/v1/models`
@@ -98,7 +98,7 @@ docker compose down -v         # 停止并删除数据卷（清空全部数据�
 | OpenAI 兼容层 | `chat/completions`、`responses`、`models`、`health`；流式 SSE 与非流式均支持 |
 | 账号池 | 多账号分组、模型级冷却、错误计数冷却、会话粘性、额度巡检 |
 | 账号运营 | 自动签到、新手任务、兑换、旅行/活跃任务、Token 刷新（含后台异步 worker） |
-| 供应商适配 | 内置 8 类上游适配器 + 自定义 OpenAI 兼容供应商，新增供应商零侵入 |
+| 供应商适配 | 内置 10 类上游适配器 + 自定义 OpenAI 兼容供应商，新增供应商零侵入 |
 | 思维注入 | 平台/用户级 Persona，按供应商与模型下发，支持预览、自检、版本回滚 |
 | 上下文增强 | 世界书注入、助手记忆检索、指令拼接 |
 | Agent 扩展 | MCP 服务器托管、插件、子代理团队、工作流调度、深度研究任务 |
@@ -207,7 +207,7 @@ curl -s http://your-domain/v1/models -H "Authorization: Bearer sk-aigw-xxxx"
 | [配置参考](docs/configuration.md) | 全部环境变量与默认值 |
 | [架构说明](docs/architecture.md) | 请求生命周期、分层职责、数据模型、关键链路 |
 | [API 参考](docs/api.md) | OpenAI 兼容接口、用户端与管理端接口、错误格式 |
-| [供应商适配](docs/providers.md) | 13 个上游、登录方式、能力矩阵、新增供应商 |
+| [供应商适配](docs/providers.md) | 15 个上游、登录方式、能力矩阵、新增供应商 |
 | [开发指南](docs/development.md) | 代码约定、新增接口模板、调试、数据库变更、提交自检 |
 
 > 第一次部署请从 [安装指南](docs/installation.md) 开始；只想调用接口请直接看 [API 参考](docs/api.md)。
