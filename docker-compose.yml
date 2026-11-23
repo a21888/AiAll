@@ -1,0 +1,82 @@
+# ============================================================================
+# AiAll — AI 聚合网关 Docker Compose 编排
+# ----------------------------------------------------------------------------
+# 用法：
+#   1) 复制 .env.docker.example 为 .env 并按需修改（可选，不改则用下方默认值）
+#   2) docker compose up -d --build
+#   3) 打开 http://localhost:8080/console （用户控制台）/ /admin （管理后台）
+# ----------------------------------------------------------------------------
+# 两个服务：
+#   app —— 应用容器（Nginx + PHP-FPM + Cron，单容器）
+#   db  —— MySQL 8.0 数据库
+# ============================================================================
+
+services:
+  app:
+    build: .
+    image: aiall:latest
+    container_name: aiall-app
+    restart: unless-stopped
+    ports:
+      - "${AIALL_PORT:-8080}:80"
+    environment:
+      # 应用基础（首次启动时写入容器内 .env）
+      AIGW_APP_NAME: "${AIGW_APP_NAME:-AiAll 聚合网关}"
+      AIGW_APP_DEBUG: "${AIGW_APP_DEBUG:-false}"
+      AIGW_APP_URL: "${AIGW_APP_URL:-http://localhost:8080}"
+      # 凭据加密主密钥：留空则首次启动自动生成并持久化；生产环境务必显式指定
+      AIGW_APP_KEY: "${AIGW_APP_KEY:-}"
+      # 数据库（主机名固定为 db，容器内互通）
+      AIGW_DB_HOST: db
+      AIGW_DB_PORT: "3306"
+      AIGW_DB_DATABASE: "${AIGW_DB_DATABASE:-aigw}"
+      AIGW_DB_USERNAME: "${AIGW_DB_USERNAME:-aigw}"
+      AIGW_DB_PASSWORD: "${AIGW_DB_PASSWORD:-aigw-secret}"
+      # 首次安装时的管理员口令：留空则首次启动随机生成（打印到容器日志，并持久化到 aiall_env 卷）
+      AIGW_INSTALL_ADMIN_PASSWORD: "${AIGW_INSTALL_ADMIN_PASSWORD:-}"
+      # 网关对外地址（仅用于展示接入地址）
+      AIGW_GATEWAY_PORT: "${AIGW_GATEWAY_PORT:-51120}"
+      AIGW_GATEWAY_BASE_URL: "${AIGW_GATEWAY_BASE_URL:-http://localhost:8080}"
+      AIGW_CORS_ORIGINS: "${AIGW_CORS_ORIGINS:-}"
+      AIGW_TRUSTED_PROXIES: "${AIGW_TRUSTED_PROXIES:-}"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # storage：会话/日志/临时文件等运行时数据
+      - aiall_storage:/var/www/html/storage
+      # aiall_env：持久化 .env（含 AIGW_APP_KEY）与首次生成的随机管理员口令
+      - aiall_env:/etc/aiall
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  db:
+    image: mysql:8.0
+    container_name: aiall-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root-secret}"
+      MYSQL_DATABASE: "${AIGW_DB_DATABASE:-aigw}"
+      MYSQL_USER: "${AIGW_DB_USERNAME:-aigw}"
+      MYSQL_PASSWORD: "${AIGW_DB_PASSWORD:-aigw-secret}"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - aiall_db:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+
+volumes:
+  aiall_storage:
+  aiall_env:
+  aiall_db:

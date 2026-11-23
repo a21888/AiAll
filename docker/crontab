@@ -1,0 +1,14 @@
+# ============================================================================
+# AiAll · 计划任务（cron）
+# ----------------------------------------------------------------------------
+# 本项目无常驻进程，自动签到 / Token 保活 / 积分巡检等依赖周期性触发 CLI：
+#   · bin/scheduler.php       —— 内置签到/保活/巡检/旅行等，推荐每 5 分钟
+#   · bin/workflow-worker.php —— 用户自定义工作流调度，推荐每 1 分钟
+# 两个脚本均幂等（内部按水位判断是否已执行），重复触发安全。
+# ============================================================================
+
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+
+*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php bin/scheduler.php >> /var/www/html/storage/logs/cron.log 2>&1
+* * * * * www-data cd /var/www/html && /usr/local/bin/php bin/workflow-worker.php >> /var/www/html/storage/logs/cron.log 2>&1

@@ -1,0 +1,27 @@
+# 构建上下文排除项（仅影响镜像构建，不影响 git 仓库内容）
+
+# VCS 与 CI
+.git
+.github
+.gitignore
+
+# 部署与文档（运行时不需要，且体积较大）
+docs
+deploy
+storage
+
+# 根目录文档与许可证（不在运行时提供）
+README.md
+CHANGELOG.md
+PRIVACY.md
+THIRD-PARTY-NOTICES.md
+LICENSE
+*.md
+
+# 构建/编排文件本身
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# 运行时敏感文件（绝不进镜像）
+.env
