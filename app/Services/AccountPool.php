@@ -34,6 +34,8 @@ class AccountPool
         'codebuddy_intl' => 'checkin',
         'qoder'          => 'checkin',
         'qoder_intl'     => 'checkin',
+        'dumate'         => 'checkin',
+        'lobster'        => 'checkin',
     ];
 
     /** 支持「成长中心 / 猫猫旅行」的供应商（国际版接口返回空数据，不参与） */

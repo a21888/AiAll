@@ -297,15 +297,46 @@ class DumateProvider extends AbstractProvider
         }
 
         if ($action === 'test' || $action === 'connectivity') {
-            try {
-                $token = $this->appToken($account);
-                return ['ok' => true, 'message' => '连通正常，token 换票成功', 'data' => ['token_prefix' => substr($token, 0, 8) . '...']];
-            } catch (\Throwable $e) {
-                return ['ok' => false, 'message' => '连通失败：' . $e->getMessage(), 'data' => null];
-            }
+            return $this->probe($account);
         }
 
         return parent::action($account, $action, $params);
+    }
+
+    /**
+     * 连通性自检：Cookie 换票 + 真实对话网关探针（最小 1 token）。
+     * 只验 token 无法发现「token 有效但模型网关不可用」的情况，故强化为真实对话。
+     */
+    private function probe(Account $account): array
+    {
+        try {
+            $token = $this->appToken($account);
+            $res = $this->http()->withHeaders([
+                'Authorization'        => 'Bearer ' . $token,
+                'Content-Type'         => 'application/json',
+                'Accept'               => 'application/json',
+                'X-Dumate-Client-Type' => 'web',
+                'X-Dumate-Account-Id'  => 'global',
+            ])->timeout(45, 15)->postJson(self::GATEWAY_BASE . '/chat/completions', [
+                'model'      => 'model-text',
+                'messages'   => [['role' => 'user', 'content' => 'hi']],
+                'max_tokens' => 1,
+                'stream'     => false,
+            ]);
+
+            if (!$res->ok()) {
+                return ['ok' => false, 'message' => '对话探针失败（HTTP ' . $res->status() . '）：' . $res->snippet(), 'data' => null];
+            }
+            $json = $res->json();
+            if (isset($json['error'])) {
+                $err = $json['error'];
+                $msg = is_array($err) ? (string) ($err['message'] ?? json_encode($err, JSON_UNESCAPED_UNICODE)) : (string) $err;
+                return ['ok' => false, 'message' => '对话探针失败：' . $msg, 'data' => null];
+            }
+            return ['ok' => true, 'message' => '连通正常（Cookie 换票 + 对话网关均可用）', 'data' => ['model' => 'model-text']];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => '自检失败：' . $e->getMessage(), 'data' => null];
+        }
     }
 
     private function checkin(Account $account): array

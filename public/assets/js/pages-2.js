@@ -550,6 +550,7 @@
                     base_url: (p.options && p.options.base_url) || '',
                     access_token: '',
                     refresh_token: '',
+                    uuid: '', first_keyfrom: '', latest_keyfrom: '',
                     cookie: '', ms_token: '', device_id: '', web_id: '',
                     callback_url: '',
                     login_json: ''
@@ -784,6 +785,61 @@
                     self.saving = false;
                     if (res && res.ok) {
                         self.loginMessage = (res.data && res.data.message) || '豆包账号已保存';
+                        S.toast(self.loginMessage, 'success');
+                        self.showLogin = false;
+                        self.load();
+                        return;
+                    }
+                    self.loginMessage = (res && res.error) || '保存失败';
+                    S.toast(self.loginMessage, 'error');
+                });
+            },
+            // 百度搭子：凭据是网页 Cookie，走 credential 导入
+            saveDumateCredential: function () {
+                var self = this;
+                var cookie = (this.loginForm.cookie || '').trim();
+                if (!cookie) { S.toast('请粘贴百度搭子 Cookie', 'warning'); return; }
+                this.saving = true;
+                this.loginMessage = '';
+                api.scoped.createAccount({
+                    provider_key: this.loginProvider.provider_key,
+                    credential: { cookie: cookie },
+                    nickname: this.loginProvider.display_name
+                }).then(function (res) {
+                    self.saving = false;
+                    if (res && res.ok) {
+                        self.loginMessage = (res.data && res.data.message) || '百度搭子账号已保存';
+                        S.toast(self.loginMessage, 'success');
+                        self.showLogin = false;
+                        self.load();
+                        return;
+                    }
+                    self.loginMessage = (res && res.error) || '保存失败';
+                    S.toast(self.loginMessage, 'error');
+                });
+            },
+            // 有道 LobsterAI：凭据是 accessToken（可选 refreshToken / uuid / keyfrom）
+            saveLobsterCredential: function () {
+                var self = this;
+                var f = this.loginForm;
+                var access = (f.access_token || '').trim();
+                if (!access) { S.toast('请粘贴 accessToken', 'warning'); return; }
+                this.saving = true;
+                this.loginMessage = '';
+                api.scoped.createAccount({
+                    provider_key: this.loginProvider.provider_key,
+                    credential: {
+                        accessToken: access,
+                        refreshToken: (f.refresh_token || '').trim(),
+                        uuid: (f.uuid || '').trim(),
+                        firstKeyfrom: (f.first_keyfrom || '').trim(),
+                        latestKeyfrom: (f.latest_keyfrom || '').trim()
+                    },
+                    nickname: this.loginProvider.display_name
+                }).then(function (res) {
+                    self.saving = false;
+                    if (res && res.ok) {
+                        self.loginMessage = (res.data && res.data.message) || 'LobsterAI 账号已保存';
                         S.toast(self.loginMessage, 'success');
                         self.showLogin = false;
                         self.load();
@@ -1094,7 +1150,7 @@
                            ' :hide-foot="loginType !== \'API_KEY\'" confirm-text="保存账号"' +
                            ' @close="closeLogin" @confirm="startLogin">' +
 
-                '<template v-if="loginType === \'API_KEY\'">' +
+                '<template v-if="loginType === \'API_KEY\' && loginProvider && loginProvider.provider_key !== \'dumate\' && loginProvider.provider_key !== \'lobster\'">' +
                   '<div class="field">' +
                     '<label class="field__label">Base URL</label>' +
                     '<input class="input mono" v-model="loginForm.base_url" placeholder="https://api.example.com/v1">' +
@@ -1103,6 +1159,56 @@
                     '<label class="field__label">API Key</label>' +
                     '<input class="input mono" v-model="loginForm.api_key" placeholder="sk-xxxx">' +
                   '</div>' +
+                '</template>' +
+
+                /* 百度搭子：凭据是网页 Cookie（BDUSS / bce-user-info 等） */
+                '<template v-else-if="loginProvider && loginProvider.provider_key === \'dumate\'">' +
+                  '<div class="note note--info" style="margin-bottom:16px">' +
+                    '百度搭子凭据是<b>网页版登录 Cookie</b>（需含 BDUSS、bce-user-info 等）。' +
+                    '在浏览器登录 www.dumate.cn 后，从开发者工具复制整条 Cookie 粘贴到下方即可。' +
+                  '</div>' +
+                  '<div class="field mb-0">' +
+                    '<label class="field__label">粘贴 Cookie</label>' +
+                    '<textarea class="textarea" v-model="loginForm.cookie"' +
+                              ' placeholder="BDUSS=xxx; bce-user-info=yyy; ...（整条 Cookie）"></textarea>' +
+                    '<div class="field__hint">保存时会自动换票校验，无效会给出具体原因</div>' +
+                  '</div>' +
+                  '<button type="button" class="btn btn--primary w-full mt-16" :disabled="saving"' +
+                          ' @click="saveDumateCredential">' +
+                    '{{ saving ? "校验中…" : "校验并保存百度搭子凭据" }}' +
+                  '</button>' +
+                '</template>' +
+
+                /* 有道 LobsterAI：凭据是 accessToken（JWT），可选 refreshToken 自动续期 */
+                '<template v-else-if="loginProvider && loginProvider.provider_key === \'lobster\'">' +
+                  '<div class="note note--info" style="margin-bottom:16px">' +
+                    '有道 LobsterAI 凭据是 <b>accessToken</b>（JWT）。' +
+                    '从 LobsterAI 客户端数据库 kv 表 auth_tokens 中取出 accessToken 粘贴即可；' +
+                    '如同时有 refreshToken 可一并填写以支持自动续期。' +
+                  '</div>' +
+                  '<div class="field">' +
+                    '<label class="field__label">accessToken *</label>' +
+                    '<textarea class="textarea" v-model="loginForm.access_token" placeholder="eyJhbGciOi..."></textarea>' +
+                  '</div>' +
+                  '<div class="field">' +
+                    '<label class="field__label">refreshToken（可选，用于自动续期）</label>' +
+                    '<input class="input mono" v-model="loginForm.refresh_token" placeholder="可选">' +
+                  '</div>' +
+                  '<div class="field">' +
+                    '<label class="field__label">uuid（可选）</label>' +
+                    '<input class="input mono" v-model="loginForm.uuid" placeholder="安装 UUID">' +
+                  '</div>' +
+                  '<div class="field">' +
+                    '<label class="field__label">firstKeyfrom / latestKeyfrom（可选）</label>' +
+                    '<div class="field__row">' +
+                      '<input class="input mono" v-model="loginForm.first_keyfrom" placeholder="firstKeyfrom">' +
+                      '<input class="input mono" v-model="loginForm.latest_keyfrom" placeholder="latestKeyfrom">' +
+                    '</div>' +
+                  '</div>' +
+                  '<button type="button" class="btn btn--primary w-full mt-16" :disabled="saving"' +
+                          ' @click="saveLobsterCredential">' +
+                    '{{ saving ? "校验中…" : "校验并保存 LobsterAI 凭据" }}' +
+                  '</button>' +
                 '</template>' +
 
                 '<template v-else-if="loginType === \'SMS_CODE\'">' +

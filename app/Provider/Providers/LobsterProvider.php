@@ -263,15 +263,41 @@ class LobsterProvider extends AbstractProvider
         }
 
         if ($action === 'test' || $action === 'connectivity') {
-            try {
-                $models = $this->models($account);
-                return ['ok' => true, 'message' => '连通正常，可用模型 ' . count($models) . ' 个', 'data' => null];
-            } catch (\Throwable $e) {
-                return ['ok' => false, 'message' => '连通失败：' . $e->getMessage(), 'data' => null];
-            }
+            return $this->probe($account);
         }
 
         return parent::action($account, $action, $params);
+    }
+
+    /**
+     * 连通性自检：拉模型 + 真实对话网关探针（流式，收到首帧即中断）。
+     * 上游仅支持 SSE，故探针走流式并在首帧后主动停止，尽量少耗额度。
+     */
+    private function probe(Account $account): array
+    {
+        try {
+            $models = $this->models($account);
+            $model = $models[0] ?? 'deepseek-v4-pro';
+            $got = false;
+            try {
+                $this->chat($account, new ChatRequest(
+                    model: $model,
+                    messages: [['role' => 'user', 'content' => 'hi']],
+                    stream: true,
+                    maxTokens: 1,
+                ), function () use (&$got) {
+                    $got = true;
+                    return false; // 收到首帧即中断
+                });
+            } catch (\Throwable $e) {
+                if (!$got) {
+                    return ['ok' => false, 'message' => '对话探针失败：' . $e->getMessage(), 'data' => null];
+                }
+            }
+            return ['ok' => true, 'message' => '连通正常（accessToken + 对话网关均可用）', 'data' => ['model' => $model]];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => '自检失败：' . $e->getMessage(), 'data' => null];
+        }
     }
 
     private function checkin(Account $account): array
