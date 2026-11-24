@@ -40,6 +40,18 @@ foreach (['dumate', 'lobster'] as $key) {
             echo "[FAIL] {$key}: models() 返回空列表\n";
             $failures++;
         }
+
+        // 自检 / 签到动作：空凭据下必须返回结构化结果（而不是抛异常崩溃）
+        foreach (['test', 'checkin'] as $action) {
+            $r = $p->action($account, $action);
+            if (!is_array($r) || !array_key_exists('ok', $r) || !is_string($r['message'] ?? null)) {
+                echo "[FAIL] {$key}: action('{$action}') 未返回结构化结果\n";
+                $failures++;
+            } else {
+                $mark = $r['ok'] ? 'ok' : 'fail';
+                echo "[OK] {$key}: action('{$action}') -> {$mark}: " . mb_substr($r['message'], 0, 60) . "\n";
+            }
+        }
     } catch (\Throwable $e) {
         echo "[FAIL] {$key}: " . get_class($e) . ': ' . $e->getMessage() . "\n";
         $failures++;
