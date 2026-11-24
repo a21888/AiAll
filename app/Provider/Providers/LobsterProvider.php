@@ -194,8 +194,10 @@ class LobsterProvider extends AbstractProvider
 
     private function keyfromQuery(Account $account): array
     {
+        $first = trim((string) $account->cred('firstKeyfrom', ''));
         $query = [
-            'firstKeyfrom'  => (string) $account->cred('firstKeyfrom', 'official'),
+            // 空串会让上游风控判定为非官方渠道，统一回退 official
+            'firstKeyfrom'  => $first !== '' ? $first : 'official',
             'latestKeyfrom' => (string) $account->cred('latestKeyfrom', ''),
         ];
         if ($account->cred('uuid', '') !== '') {
@@ -373,7 +375,9 @@ class LobsterProvider extends AbstractProvider
 
         $body = [
             'refreshToken'  => $refresh,
-            'firstKeyfrom'  => (string) $account->cred('firstKeyfrom', ''),
+            'firstKeyfrom'  => trim((string) $account->cred('firstKeyfrom', '')) !== ''
+                ? (string) $account->cred('firstKeyfrom', '')
+                : 'official',
             'latestKeyfrom' => (string) $account->cred('latestKeyfrom', ''),
             'version'       => '0.1.0',
         ];
@@ -440,12 +444,44 @@ class LobsterProvider extends AbstractProvider
             );
         }
 
+        $firstKeyfrom = trim((string) ($params['firstKeyfrom'] ?? ''));
+
+        // 先校验再入库：拉一次 /api/models/available，401/403 直接判定 token 不可用，
+        // 避免存入过期 token 后在首次对话时才暴露问题。
+        try {
+            $check = $this->http()->withBearer($accessToken)
+                ->withHeader('Accept', 'application/json')
+                ->withHeader('User-Agent', 'LobsterAI/' . self::CLIENT_VERSION_FALLBACK)
+                ->timeout(20)
+                ->get(self::BASE . '/api/models/available', ['firstKeyfrom' => $firstKeyfrom !== '' ? $firstKeyfrom : 'official']);
+
+            if (!$check->ok()) {
+                return new LoginSession(
+                    sessionId: $sessionId,
+                    providerKey: $providerKey,
+                    loginType: $this->loginType(),
+                    state: 'failed',
+                    message: 'accessToken 校验失败（HTTP ' . $check->status() . '）：' . $check->snippet(),
+                    error: 'invalid_token'
+                );
+            }
+        } catch (\Throwable $e) {
+            return new LoginSession(
+                sessionId: $sessionId,
+                providerKey: $providerKey,
+                loginType: $this->loginType(),
+                state: 'failed',
+                message: 'accessToken 校验失败：' . $e->getMessage(),
+                error: 'invalid_token'
+            );
+        }
+
         $uid = 'lb_' . substr(hash('sha256', $accessToken), 0, 16);
         $credential = [
             'accessToken'   => $accessToken,
             'refreshToken'  => $refreshToken,
             'uuid'          => trim((string) ($params['uuid'] ?? '')),
-            'firstKeyfrom'  => trim((string) ($params['firstKeyfrom'] ?? '')),
+            'firstKeyfrom'  => $firstKeyfrom,
             'latestKeyfrom' => trim((string) ($params['latestKeyfrom'] ?? '')),
             'userId'        => trim((string) ($params['userId'] ?? '')),
         ];

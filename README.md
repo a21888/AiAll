@@ -208,6 +208,7 @@ curl -s http://your-domain/v1/models -H "Authorization: Bearer sk-aigw-xxxx"
 | [架构说明](docs/architecture.md) | 请求生命周期、分层职责、数据模型、关键链路 |
 | [API 参考](docs/api.md) | OpenAI 兼容接口、用户端与管理端接口、错误格式 |
 | [供应商适配](docs/providers.md) | 15 个上游、登录方式、能力矩阵、新增供应商 |
+| [搭子 / Lobster 接入](docs/upstream-dumate-lobster.md) | 百度搭子与有道 LobsterAI：凭据获取、账号添加、模型同步、调用示例、额度签到与排障 |
 | [开发指南](docs/development.md) | 代码约定、新增接口模板、调试、数据库变更、提交自检 |
 
 > 第一次部署请从 [安装指南](docs/installation.md) 开始；只想调用接口请直接看 [API 参考](docs/api.md)。

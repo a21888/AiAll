@@ -26,6 +26,8 @@
 | `custom` | 自定义供应商 | `API_KEY` | 支持 | OpenAI 兼容上游，用户可自建 |
 
 > 「图片输入」指**当前协议链路**是否保证保留 `image_url` 内容块。返回不支持时，Responses 适配层会在请求前明确报 `400 unsupported_image_input`，避免图片被上游静默丢弃。
+>
+> `dumate` / `lobster` 的上游协议、凭据获取、模型同步与排障，见 **[百度搭子 & 有道 LobsterAI 反代接入](upstream-dumate-lobster.md)**。
 
 ## 2. 登录方式
 

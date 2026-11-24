@@ -26,6 +26,7 @@
 | [架构说明](architecture.md) | 请求生命周期、分层职责、数据模型（29 张表）、核心链路 | 二次开发者 |
 | [API 参考](api.md) | OpenAI 兼容接口、用户端 / 管理端接口、错误格式 | 客户端 / 对接方 |
 | [供应商适配](providers.md) | 15 个内置上游、登录方式、能力矩阵、凭据存储、新增供应商 | 扩展开发者 |
+| [搭子 / Lobster 接入](upstream-dumate-lobster.md) | 百度搭子与有道 LobsterAI 反代：上游协议、凭据获取、账号添加、模型同步、调用、额度签到、排障 | 使用这两个上游的人 |
 | [开发指南](development.md) | 代码约定、新增接口 / 服务的完整示例、调试、数据库变更、提交规范 | 二次开发者 |
 | [发布说明](../CHANGELOG.md) | 版本功能、变更记录与已知限制 | 所有人 |
 | [隐私说明](../PRIVACY.md) | 实例处理的数据、用途、保留期与用户权利 | 运维 / 合规 |
@@ -85,6 +86,7 @@ graph TD
     README --> ARCH["架构说明"]
     README --> API["API 参考"]
     README --> PROV["供应商适配"]
+    README --> UPL["搭子 / Lobster 接入"]
     README --> DEV["开发指南"]
     README --> ROOT["项目总览<br/>根目录 README"]
 
@@ -92,6 +94,7 @@ graph TD
     INST -. 上线后运维 .-> DEP
     INST -. 首次调用 .-> API
     DEP -. 供应商能力 .-> PROV
+    PROV -. 反代细节 .-> UPL
     DEV -. 扩展上游 .-> PROV
     DEV -. 理解分层 .-> ARCH
 ```
@@ -109,6 +112,7 @@ graph TD
 | 生成或重置管理员账号 | [安装指南 § 6](installation.md#6-执行安装脚本) |
 | 用 OpenAI SDK 调网关 | [API 参考 § 2](api.md#2-openai-兼容接口) |
 | 新增一个上游供应商 | [供应商适配 § 6](providers.md#6-新增供应商) |
+| 接入百度搭子 / 有道 LobsterAI | [搭子 / Lobster 接入](upstream-dumate-lobster.md) |
 | 新增一个接口 | [开发指南 § 5](development.md#5-新增一个接口的完整示例) |
 | 查报错原因 | [部署指南 § 10](deployment.md#10-故障排查) · [安装指南 § 13](installation.md#13-常见安装问题) |
 

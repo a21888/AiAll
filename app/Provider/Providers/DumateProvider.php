@@ -125,6 +125,37 @@ class DumateProvider extends AbstractProvider
     }
 
     /**
+     * 用网页 Cookie 换票：GET /api/dumate/app/token/get。
+     *
+     * @return array{0:string,1:int} [token, 过期毫秒时间戳]
+     */
+    private function fetchToken(string $cookie): array
+    {
+        $res = $this->http()->withHeaders($this->webHeaders($cookie))->timeout(15)
+            ->get(self::WEB_BASE . '/api/dumate/app/token/get');
+
+        if (!$res->ok()) {
+            throw new \RuntimeException('取 token 失败（HTTP ' . $res->status() . '）：' . $res->snippet());
+        }
+
+        $json = $res->json();
+        $result = $json['result'] ?? $json['data'] ?? $json;
+        $token = trim((string) ($result['token'] ?? ''));
+        if ($token === '') {
+            $msg = $json['message'] ?? $json['msg'] ?? $res->snippet();
+            throw new \RuntimeException('取 token 失败：' . $msg);
+        }
+
+        $expiredAt = (string) ($result['expired_at'] ?? '');
+        $expireMs = $expiredAt !== '' ? (strtotime($expiredAt) * 1000) : (now_ms() + 50 * 60 * 1000);
+        if ($expireMs <= 0) {
+            $expireMs = now_ms() + 50 * 60 * 1000;
+        }
+
+        return [$token, $expireMs];
+    }
+
+    /**
      * 取（或复用）网关 Bearer token。token 缓存在凭据里，临期自动换票。
      */
     private function appToken(Account $account): string
@@ -135,27 +166,7 @@ class DumateProvider extends AbstractProvider
             return $token;
         }
 
-        $cookie = $this->cookie($account);
-        $res = $this->http()->withHeaders($this->webHeaders($cookie))->timeout(15)
-            ->get(self::WEB_BASE . '/api/dumate/app/token/get');
-
-        if (!$res->ok()) {
-            throw new \RuntimeException('百度搭子取 token 失败（HTTP ' . $res->status() . '）：' . $res->snippet());
-        }
-
-        $json = $res->json();
-        $result = $json['result'] ?? $json['data'] ?? $json;
-        $token = trim((string) ($result['token'] ?? ''));
-        if ($token === '') {
-            $msg = $json['message'] ?? $res->snippet();
-            throw new \RuntimeException('百度搭子取 token 失败：' . $msg);
-        }
-
-        $expiredAt = (string) ($result['expired_at'] ?? '');
-        $expireMs = $expiredAt !== '' ? (strtotime($expiredAt) * 1000) : (now_ms() + 50 * 60 * 1000);
-        if ($expireMs <= 0) {
-            $expireMs = now_ms() + 50 * 60 * 1000;
-        }
+        [$token, $expireMs] = $this->fetchToken($this->cookie($account));
 
         $this->accountRepository->patchCredential($account, [
             'token'           => $token,
@@ -419,11 +430,30 @@ class DumateProvider extends AbstractProvider
             );
         }
 
+        // 先换票再入库：Cookie 是否有效当场就能给出具体原因，
+        // 避免把已失效的 Cookie 存进去、直到第一次对话才报错。
+        try {
+            [$token, $expireMs] = $this->fetchToken($cookie);
+        } catch (\Throwable $e) {
+            return new LoginSession(
+                sessionId: $sessionId,
+                providerKey: $providerKey,
+                loginType: $this->loginType(),
+                state: 'failed',
+                message: 'Cookie 校验失败：' . $e->getMessage(),
+                error: 'invalid_cookie'
+            );
+        }
+
         $uid = 'dm_' . substr(hash('sha256', $cookie), 0, 16);
         $this->accountRepository->upsertCredential(
             $providerKey,
             $uid,
-            ['cookie' => $cookie],
+            [
+                'cookie'          => $cookie,
+                'token'           => $token,
+                'token_expire_at' => $expireMs,
+            ],
             ['added_at' => now_ms()],
             $nickname !== '' ? $nickname : ('搭子-' . substr($uid, 3, 6))
         );

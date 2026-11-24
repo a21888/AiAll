@@ -404,12 +404,24 @@ class AccountController
 
         // API_KEY 型走 Provider 自己的落库逻辑，保证凭据结构一致
         if ($loginType === 'API_KEY') {
-            $session = $this->providerManager->get($providerKey)->pollLogin(uuid(), [
+            $params = [
                 'provider_key' => $providerKey,
                 'base_url'     => trim((string) ($payload['base_url'] ?? '')),
                 'api_key'      => trim((string) ($payload['api_key'] ?? '')),
                 'nickname'     => trim((string) ($payload['nickname'] ?? '')),
-            ]);
+            ];
+
+            // 少数 API_KEY 型上游的凭据不是 base_url+api_key：
+            //   百度搭子   → cookie
+            //   有道 LobsterAI → accessToken（可选 refreshToken / uuid / keyfrom）
+            // 前端把这类凭据放在 credential 里提交，必须原样透传给 pollLogin；
+            // 否则 Provider 收到空 cookie/token，会误报「Cookie 为必填」。
+            $credential = $payload['credential'] ?? null;
+            if (is_array($credential) && $credential !== []) {
+                $params += $credential;
+            }
+
+            $session = $this->providerManager->get($providerKey)->pollLogin(uuid(), $params);
 
             if ($session->state !== 'success') {
                 return $this->fail($session->message ?: '添加失败');
