@@ -618,6 +618,21 @@
             },
             startLogin: function () { this.runStartLogin(false); },
             /**
+             * 弹窗底部「保存账号」确认：按供应商分发。
+             * 搭子/Lobster 是「粘贴凭据直存」，不走 startLogin/pollLogin
+             * （否则 loginPayload 不带 cookie/token，会误报「Cookie 为必填」）。
+             */
+            confirmLogin: function () {
+                var key = this.loginProvider && this.loginProvider.provider_key;
+                if (key === 'dumate') {
+                    this.saveDumateCredential();
+                } else if (key === 'lobster') {
+                    this.saveLobsterCredential();
+                } else {
+                    this.startLogin();
+                }
+            },
+            /**
              * 手机模式：不带 login_source，改带 http://127.0.0.1:18080 回环 redirect，
              * 上游因此产出标准 http 回调（?authorization_code=..&state=..），
              * 手机地址栏会保留该 URL，长按即可复制后粘回「粘贴回调地址」。
@@ -1148,7 +1163,7 @@
               '<aigw-modal v-if="showLogin && loginProvider"' +
                            ' :title="\'添加账号 · \' + loginProvider.display_name" wide :busy="saving"' +
                            ' :hide-foot="loginType !== \'API_KEY\'" confirm-text="保存账号"' +
-                           ' @close="closeLogin" @confirm="startLogin">' +
+                           ' @close="closeLogin" @confirm="confirmLogin">' +
 
                 '<template v-if="loginType === \'API_KEY\' && loginProvider && loginProvider.provider_key !== \'dumate\' && loginProvider.provider_key !== \'lobster\'">' +
                   '<div class="field">' +
